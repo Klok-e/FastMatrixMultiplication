@@ -703,9 +703,10 @@ void AlgTheoryLab2::Matrix::MultiplyNaiveP(const AlgTheoryLab2::Matrix & other, 
 	for (int cColumn = 0; cColumn < result._columns; cColumn++)
 		for (int cRow = 0; cRow < result._rows; cRow++)
 		{
-			result.At(cRow, cColumn) = 0;
+			double sum = 0;
 			for (int i = 0; i < _columns; i++)
-				result.At(cRow, cColumn) += At(cRow, i) * other.At(i, cColumn);
+				sum += At(cRow, i) * other.At(i, cColumn);
+			result.At(cRow, cColumn) = sum;
 		}
 }
 
