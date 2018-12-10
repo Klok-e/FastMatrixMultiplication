@@ -71,13 +71,13 @@ namespace AlgTheoryLab2
 		void Add(const Matrix& other, Matrix & writeTo) const;
 		void Subtract(const Matrix& other, Matrix & writeTo) const;
 
-		template<int auxNumberNoRecurse, int auxNumberRecurse, int stopAtDimensions>
+		template<int auxCount, int stopAtDimensions>
 		static int CalculateSizeOfAllAuxiliaryMatrices(const int n);
 
 		static void CheckBounds(int row, int column, int rows, int columns);
 	};
 
-	template<int auxNumberNoRecurse, int auxNumberRecurse, int stopAtDimensions>
+	template<int auxCount, int stopAtDimensions>
 	int AlgTheoryLab2::Matrix::CalculateSizeOfAllAuxiliaryMatrices(const int n)
 	{
 #if _DEBUG
@@ -87,8 +87,6 @@ namespace AlgTheoryLab2
 
 		if (n <= stopAtDimensions)
 			return 0;
-		const int sizeOfMatrLower = (n / 2) * (n / 2);
-		// ниасилил геометрическую прогрессию
-		return sizeOfMatrLower * (auxNumberNoRecurse + auxNumberRecurse) + CalculateSizeOfAllAuxiliaryMatrices<auxNumberNoRecurse, auxNumberRecurse, stopAtDimensions>(n / 2);
+		return (n * n / 4) * (auxCount);
 	}
 }

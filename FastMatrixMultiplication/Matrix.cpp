@@ -149,7 +149,7 @@ double AlgTheoryLab2::Matrix::At(int row, int column) const
 
 AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix & other) const
 {
-	int size = CalculateSizeOfAllAuxiliaryMatrices<14, 7, 2>(_rows);
+	int size = CalculateSizeOfAllAuxiliaryMatrices<21, 2>(_rows);
 
 	double* dataForAllAuxiliaryMatrices = AlgTheoryLab2::ArrayBuilder::CreateArray<double>(size);
 
@@ -163,7 +163,7 @@ AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAlloc(con
 
 AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybrid(const AlgTheoryLab2::Matrix & other) const
 {
-	int size = CalculateSizeOfAllAuxiliaryMatrices<14, 7, Matrix::_hybridFallbackThreshold>(_rows);
+	int size = CalculateSizeOfAllAuxiliaryMatrices<21, Matrix::_hybridFallbackThreshold>(_rows);
 
 	double* dataForAllAuxiliaryMatrices = AlgTheoryLab2::ArrayBuilder::CreateArray<double>(size);
 
@@ -198,8 +198,8 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2
 {
 #ifdef _DEBUG
 	CheckCompatibilityForMult(other);
-#endif
 	double* auxBefore = aux;
+#endif
 
 	if (_columns * _rows == 4)
 	{
@@ -280,8 +280,6 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2
 	AlgTheoryLab2::Matrix s8(size, size, aux);
 	aux += size * size;
 
-	unsigned long long taken = aux - auxBefore;
-
 	a21.Add(a22, s1);
 	s1.Subtract(a11, s2);
 	a11.Subtract(a21, s3);
@@ -312,9 +310,8 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2
 	AlgTheoryLab2::Matrix p7(size, size, aux);
 	aux += size * size;
 
-	taken = aux - auxBefore;
-
 	// all these recursive calls can use the same memory block because they aren't simultaneuous
+	// also memory they were using is no longer needed so we can rewrite it with something actually useful (t1,t2,c11-c22)
 	s2.MultiplyStrassenVinogradNoAllocP(s6, p1, aux);
 	a11.MultiplyStrassenVinogradNoAllocP(b11, p2, aux);
 	a12.MultiplyStrassenVinogradNoAllocP(b21, p3, aux);
@@ -322,12 +319,9 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2
 	s1.MultiplyStrassenVinogradNoAllocP(s5, p5, aux);
 	s4.MultiplyStrassenVinogradNoAllocP(b22, p6, aux);
 	a22.MultiplyStrassenVinogradNoAllocP(s8, p7, aux);
-	aux += CalculateSizeOfAllAuxiliaryMatrices<14, 7, 2>(size);
 
 	AlgTheoryLab2::Matrix t1(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix t2(size, size, aux); aux += size * size;
-
-	taken = aux - auxBefore;
 
 	p1.Add(p2, t1);
 	t1.Add(p4, t2);
@@ -336,8 +330,6 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2
 	AlgTheoryLab2::Matrix c12(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix c21(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix c22(size, size, aux); aux += size * size;
-
-	taken = aux - auxBefore;
 
 	p2.Add(p3, c11);
 	t1.Add(p5, c12);
@@ -366,8 +358,8 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheo
 {
 #ifdef _DEBUG
 	CheckCompatibilityForMult(other);
-#endif
 	double* auxBefore = aux;
+#endif
 
 	if (_columns * _rows <= Matrix::_hybridFallbackThreshold * Matrix::_hybridFallbackThreshold)
 	{
@@ -413,8 +405,6 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheo
 	AlgTheoryLab2::Matrix s8(size, size, aux);
 	aux += size * size;
 
-	unsigned long long taken = aux - auxBefore;
-
 	a21.Add(a22, s1);
 	s1.Subtract(a11, s2);
 	a11.Subtract(a21, s3);
@@ -445,8 +435,6 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheo
 	AlgTheoryLab2::Matrix p7(size, size, aux);
 	aux += size * size;
 
-	taken = aux - auxBefore;
-
 	// all these recursive calls can use the same memory block because they aren't simultaneuous
 	s2.MultiplyStrassenVinogradNoAllocHybridP(s6, p1, aux);
 	a11.MultiplyStrassenVinogradNoAllocHybridP(b11, p2, aux);
@@ -455,12 +443,9 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheo
 	s1.MultiplyStrassenVinogradNoAllocHybridP(s5, p5, aux);
 	s4.MultiplyStrassenVinogradNoAllocHybridP(b22, p6, aux);
 	a22.MultiplyStrassenVinogradNoAllocHybridP(s8, p7, aux);
-	aux += CalculateSizeOfAllAuxiliaryMatrices<14, 7, Matrix::_hybridFallbackThreshold>(size);
 
 	AlgTheoryLab2::Matrix t1(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix t2(size, size, aux); aux += size * size;
-
-	taken = aux - auxBefore;
 
 	p1.Add(p2, t1);
 	t1.Add(p4, t2);
@@ -469,8 +454,6 @@ void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheo
 	AlgTheoryLab2::Matrix c12(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix c21(size, size, aux); aux += size * size;
 	AlgTheoryLab2::Matrix c22(size, size, aux); aux += size * size;
-
-	taken = aux - auxBefore;
 
 	p2.Add(p3, c11);
 	t1.Add(p5, c12);
@@ -508,8 +491,8 @@ AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradAllocP(cons
 	{
 		//split this matrix into 4 scalars
 		double a11 = At(0, 0);
-		double a12 = At(0, 1);
-		double a21 = At(1, 0);
+			double a12 = At(0, 1);
+			double a21 = At(1, 0);
 		double a22 = At(1, 1);
 
 		//split other matrix into 4 scalars
@@ -742,9 +725,9 @@ AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::CreateSubView(int rowStart, int col
 #endif
 
 	res._rowsOrig = _rowsOrig;
-	res._colsOrig = _colsOrig;
+		res._colsOrig = _colsOrig;
 
-	return res;
+		return res;
 }
 
 int AlgTheoryLab2::Matrix::GetIndex(int row, int column) const
