@@ -4,16 +4,7 @@
     <ClCompile Include="ArrayBuilder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Clock.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="HelpfulFunctions.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="Main.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Matrix.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -24,13 +15,16 @@
     <ClInclude Include="ArrayBuilder.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Clock.h">
+    <ClInclude Include="HelpfulFunctionsMatrices.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="HelpfulFunctions.h">
+    <ClInclude Include="Clock.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix.h">
+    <ClInclude Include="HelpfulFunctions.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

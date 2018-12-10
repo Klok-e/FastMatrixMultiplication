@@ -13,4 +13,19 @@ namespace AlgTheoryLab2
 	private:
 		time_t _timeStart;
 	};
+
+	Clock::Clock() :
+		_timeStart(0)
+	{
+	}
+
+	void Clock::Start()
+	{
+		_timeStart = clock();
+	}
+
+	time_t Clock::Elapsed()
+	{
+		return clock() - _timeStart;
+	}
 }
