@@ -126,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.hpp" />
+    <ClInclude Include="IReadWriteArray2D.hpp" />
     <ClInclude Include="ArrayBuilder.hpp" />
     <ClInclude Include="Clock.hpp" />
     <ClInclude Include="HelpfulFunctions.hpp" />

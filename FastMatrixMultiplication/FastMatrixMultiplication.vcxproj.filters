@@ -9,9 +9,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Array.hpp">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="ArrayBuilder.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -25,6 +22,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Matrix.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Array.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="IReadWriteArray2D.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

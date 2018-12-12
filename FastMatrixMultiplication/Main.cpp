@@ -4,9 +4,9 @@
 #include <functional>
 #include "Matrix.hpp"
 #include "Clock.hpp"
-#include "HelpfulFunctions.hpp"
 #include "ArrayBuilder.hpp"
 #include "HelpfulFunctionsMatrices.hpp"
+#include "IReadWriteArray2D.hpp"
 
 void testMultiplication(std::function<void()> func, int iters, AlgTheoryLab2::Clock& watch, int size, char const* name)
 {
@@ -30,31 +30,43 @@ void testMultiplication(std::function<void()> func, int iters, AlgTheoryLab2::Cl
 	std::cout << "Array sum size deleted: " << (AlgTheoryLab2::ArrayBuilder::_deletedArrSumSize - arraysDeletedSumSizeBefore) / iters << "\n\n";
 }
 
+template<class T>
+class MyClass : public AlgTheoryLab2::IReadWriteArray2D<T>
+{
+public:
+	// Inherited via IReadWriteArray2D
+	double const & At(int row, int column) const override
+	{
+		return 0.;
+	}
+	int Rows() const override
+	{
+		return 0;
+	}
+	int Columns() const override
+	{
+		return 0;
+	}
+	double & At(int row, int column) override
+	{
+		double t = 0.;
+		return t;
+	}
+};
+
 int main()
 {
 	srand(time(nullptr));
 	{
-		AlgTheoryLab2::Matrix a1(8, 8);
-		AlgTheoryLab2::Matrix b1(8, 8);
+		AlgTheoryLab2::Matrix<double> a1(8, 8);
+		AlgTheoryLab2::Matrix<double> b1(8, 8);
 		AlgTheoryLab2::fillWithRandom(a1, 0, 4, true);
 		AlgTheoryLab2::fillWithRandom(b1, 0, 4, true);
 		AlgTheoryLab2::printMatr(a1);
 		AlgTheoryLab2::printMatr(b1);
 
 		std::cout << "MultiplyStrassenVinogradNoAlloc: \n";
-		AlgTheoryLab2::Matrix c1 = a1.MultiplyStrassenVinogradNoAlloc(b1);
-		AlgTheoryLab2::printMatr(c1);
-
-		std::cout << "MultiplyStrassenVinogradAlloc: \n";
-		c1 = a1.MultiplyStrassenVinogradAlloc(b1);
-		AlgTheoryLab2::printMatr(c1);
-
-		std::cout << "MultiplyStrassenVinogradNoAllocHybrid: \n";
-		c1 = a1.MultiplyStrassenVinogradNoAllocHybrid(b1);
-		AlgTheoryLab2::printMatr(c1);
-
-		std::cout << "MultiplyStrassenVinogradAllocHybrid: \n";
-		c1 = a1.MultiplyStrassenVinogradAllocHybrid(b1);
+		AlgTheoryLab2::Matrix<double> c1 = a1.MultiplyStrassenVinogradNoAlloc(b1);
 		AlgTheoryLab2::printMatr(c1);
 
 		std::cout << "MultiplyNaive: \n";
@@ -62,42 +74,27 @@ int main()
 		AlgTheoryLab2::printMatr(c1);
 	}
 
-	std::vector<int> sizes{512};
+	std::vector<int> sizes{1024};
 
 	const int iters = 3;
 	AlgTheoryLab2::Clock watch;
 	for (int sizeInd = 0; sizeInd < sizes.size(); sizeInd++)
 	{
 		int size = sizes[sizeInd];
-		AlgTheoryLab2::Matrix a(size, size);
-		AlgTheoryLab2::Matrix b(size, size);
+		AlgTheoryLab2::Matrix<double> a(size, size);
+		AlgTheoryLab2::Matrix<double> b(size, size);
 
 		AlgTheoryLab2::fillWithRandom(a, -1000, 1000);
 		AlgTheoryLab2::fillWithRandom(b, -1000, 1000);
 
 		testMultiplication([&]()
 		{
-			a.MultiplyStrassenVinogradNoAlloc(b);
+			auto c = a.MultiplyStrassenVinogradNoAlloc(b);
 		}, iters, watch, size, "MultiplyStrassenVinogradNoAlloc");
 
 		testMultiplication([&]()
 		{
-			a.MultiplyStrassenVinogradAlloc(b);
-		}, iters, watch, size, "MultiplyStrassenVinogradAlloc");
-
-		testMultiplication([&]()
-		{
-			a.MultiplyStrassenVinogradNoAllocHybrid(b);
-		}, iters, watch, size, "MultiplyStrassenVinogradNoAllocHybrid");
-
-		testMultiplication([&]()
-		{
-			a.MultiplyStrassenVinogradAllocHybrid(b);
-		}, iters, watch, size, "MultiplyStrassenVinogradAllocHybrid");
-
-		testMultiplication([&]()
-		{
-			a.MultiplyNaive(b);
+			auto c = a.MultiplyNaive(b);
 		}, iters, watch, size, "MultiplyNaive");
 	}
 

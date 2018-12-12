@@ -1,13 +1,87 @@
 #pragma once
 #include "HelpfulFunctions.hpp"
 #include "Array.hpp"
+#include "IReadWriteArray2D.hpp"
 
 namespace AlgTheoryLab2
 {
-	class Matrix
+	template<class Numeric>
+	class Matrix final :
+		public virtual AlgTheoryLab2::IReadWriteArray2D<double>
 	{
 	public:
 		static const int _hybridFallbackThreshold = 64;
+
+		class MatrixView final :
+			public virtual IReadOnlyArray2D<Numeric>
+		{
+		public:
+			// normal constructor
+			MatrixView(Matrix<Numeric> const* matrix, int rowStart, int colStart, int rowEnd, int colEnd) :
+				_matrix(matrix),
+				_rowStart(rowStart),
+				_colStart(colStart),
+				_rowEnd(rowEnd),
+				_colEnd(colEnd),
+				_rows(rowEnd - rowStart),
+				_columns(colEnd - colStart)
+			{
+#if _DEBUG
+				if (_rowEnd <= 0
+					||
+					_colEnd <= 0)
+					std::cerr << "\nError: impossible values of res._rowEnd and res._colEnd\n";
+#endif
+			}
+
+			// normal constructor
+			MatrixView(MatrixView const* view, int rowStart, int colStart, int rowEnd, int colEnd) :
+				_matrix(view->_matrix)
+			{
+				_rows = rowEnd - rowStart;
+				_columns = colEnd - colStart;
+
+				_rowStart = view->_rowStart + rowStart;
+				_colStart = view->_colStart + colStart;
+				_rowEnd = _rows + _rowStart;
+				_colEnd = _columns + _colStart;
+
+#if _DEBUG
+				if (_rowEnd <= 0
+					||
+					_colEnd <= 0)
+					std::cerr << "\nError: impossible values of res._rowEnd and res._colEnd\n";
+#endif
+
+				_rows = _rows;
+			}
+
+			MatrixView CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const
+			{
+				return MatrixView(this, rowStart, colStart, rowEnd, colEnd);
+			}
+
+			Numeric const & At(int row, int column) const override
+			{
+				row += _rowStart;
+				column += _colStart;
+
+				return _matrix->At(row, column);
+			}
+			int Rows() const override
+			{
+				return _rows;
+			}
+			int Columns() const override
+			{
+				return _columns;
+			}
+
+		private:
+			Matrix<Numeric> const* _matrix;
+			int _rows, _columns;
+			int _rowStart, _colStart, _rowEnd, _colEnd;
+		};
 
 		// usual constructor
 		Matrix(int rows, int columns, bool fillWithZeros = false);
@@ -19,67 +93,97 @@ namespace AlgTheoryLab2
 		Matrix();
 
 		// copy constructor
-		Matrix(const Matrix& other);
+		Matrix(const Matrix<Numeric>& other);
 
 		// move constructor
-		Matrix(Matrix&& other);
+		Matrix(Matrix<Numeric>&& other);
 
 		// assignment copy operator
-		Matrix& operator=(const Matrix& other);
+		Matrix<Numeric>& operator=(const Matrix<Numeric>& other);
 
 		// assignment move operator
-		Matrix& operator=(Matrix&& other);
+		Matrix<Numeric>& operator=(Matrix<Numeric>&& other);
 
-		Matrix operator+(const Matrix& other)const;
-		Matrix operator-(const Matrix& other)const;
+		Matrix<Numeric> operator+(const Matrix<Numeric>& other) const;
+		Matrix<Numeric> operator-(const Matrix<Numeric>& other) const;
 
-		double& At(int row, int column);
-		double At(int row, int column) const;
+		Matrix<Numeric> MultiplyStrassenVinogradNoAlloc(const Matrix<Numeric>& other) const;
+		Matrix<Numeric> MultiplyNaive(const Matrix<Numeric> & other) const;
 
-		Matrix MultiplyStrassenVinogradNoAlloc(const Matrix& other) const;
-		Matrix MultiplyStrassenVinogradNoAllocHybrid(const Matrix & other) const;
-		Matrix MultiplyStrassenVinogradAlloc(const Matrix & other) const;
-		Matrix MultiplyStrassenVinogradAllocHybrid(const Matrix& other) const;
-		Matrix MultiplyNaive(const Matrix & other) const;
+		double& At(int row, int column) override;
+		double const& At(int row, int column) const override;
 
-		int Rows() const;
-		int Columns() const;
+		int Rows() const override;
+		int Columns() const override;
 
-		Matrix CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const;
+		MatrixView CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const
+		{
+			return MatrixView(this, rowStart, colStart, rowEnd, colEnd);
+		}
 
 	private:
 		Array<double> _data;
-
 		int _rows, _columns;
-
-		int _rowStart, _colStart, _rowEnd, _colEnd;
-
-		int _rowsOrig, _colsOrig;
-
-		void CheckCompatibilityForMult(const Matrix& other) const;
-		void CheckCompatibilityForAdd(const Matrix& other) const;
-
-		bool IsSameDimensions(const Matrix& other) const;
 
 		int GetIndex(int row, int column) const;
 
-		void MultiplyStrassenVinogradNoAllocP(const Matrix& other, Matrix& writeTo, double* data) const;
-		void MultiplyStrassenVinogradNoAllocHybridP(const AlgTheoryLab2::Matrix & other, AlgTheoryLab2::Matrix & result, double * aux) const;
-		Matrix MultiplyStrassenVinogradAllocP(const Matrix & other) const;
-		Matrix MultiplyStrassenVinogradAllocHybridP(const Matrix& other) const;
-		void MultiplyNaiveP(const Matrix & other, Matrix & result) const;
+		template<class _2DimArray1, class _2DimArray2>
+		static void CheckCompatibilityForMult(const _2DimArray1& left, const _2DimArray2& right);
 
-		void Add(const Matrix& other, Matrix & writeTo) const;
-		void Subtract(const Matrix& other, Matrix & writeTo) const;
+		template<class _2DimArray1, class _2DimArray2>
+		static void CheckCompatibilityForAdd(const _2DimArray1& left, const _2DimArray2& right);
+
+		template<class _2DimArray1, class _2DimArray2>
+		static bool IsSameDimensions(const _2DimArray1& left, const _2DimArray2& right);
+
+		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+		static void MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, double* aux);
+
+		static void MultiplyNaiveP(const Matrix<Numeric> & left, const Matrix<Numeric> & right, Matrix<Numeric> & result);
+
+		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+		static void Add(const _2DimArray1& a, const _2DimArray2& b, _2DimArray3& writeTo);
+
+		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+		static void Subtract(const _2DimArray1& a, const _2DimArray2& b, _2DimArray3& writeTo);
 
 		template<int auxCount, int stopAtDimensions>
 		static int CalculateSizeOfAllAuxiliaryMatrices(const int n);
-
-		static void CheckBounds(int row, int column, int rows, int columns);
 	};
 
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+	inline void Matrix<Numeric>::Add(const _2DimArray1 & a, const _2DimArray2 & b, _2DimArray3 & writeTo)
+	{
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
+		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
+
+		int cols = a.Columns();
+		int rows = a.Rows();
+		for (int col = 0; col < cols; col++)
+			for (int row = 0; row < rows; row++)
+				writeTo.At(row, col) = a.At(row, col) + b.At(row, col);
+	}
+
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+	inline void Matrix<Numeric>::Subtract(const _2DimArray1 & a, const _2DimArray2 & b, _2DimArray3 & writeTo)
+	{
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
+		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
+
+		int cols = a.Columns();
+		int rows = a.Rows();
+		for (int col = 0; col < cols; col++)
+			for (int row = 0; row < rows; row++)
+				writeTo.At(row, col) = a.At(row, col) - b.At(row, col);
+	}
+
+	template<class Numeric>
 	template<int auxCount, int stopAtDimensions>
-	int Matrix::CalculateSizeOfAllAuxiliaryMatrices(const int n)
+	int Matrix<Numeric>::CalculateSizeOfAllAuxiliaryMatrices(const int n)
 	{
 		static_assert(isPowerOf2(stopAtDimensions));
 
@@ -88,16 +192,11 @@ namespace AlgTheoryLab2
 		return (n * n / 4) * (auxCount);
 	}
 
-	AlgTheoryLab2::Matrix::Matrix(int rows, int columns, bool fillWithZeros) :
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, bool fillWithZeros) :
 		_data(rows * columns),
 		_rows(rows),
-		_columns(columns),
-		_rowStart(0),
-		_rowEnd(rows),
-		_colStart(0),
-		_colEnd(columns),
-		_rowsOrig(rows),
-		_colsOrig(columns)
+		_columns(columns)
 	{
 		if (fillWithZeros)
 		{
@@ -107,16 +206,11 @@ namespace AlgTheoryLab2
 		}
 	}
 
-	AlgTheoryLab2::Matrix::Matrix(int rows, int columns, double * data, bool fillWithZeros) :
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, double * data, bool fillWithZeros) :
 		_data(rows * columns, data),
 		_rows(rows),
-		_columns(columns),
-		_rowStart(0),
-		_rowEnd(rows),
-		_colStart(0),
-		_colEnd(columns),
-		_rowsOrig(rows),
-		_colsOrig(columns)
+		_columns(columns)
 	{
 		if (fillWithZeros)
 		{
@@ -126,61 +220,39 @@ namespace AlgTheoryLab2
 		}
 	}
 
-	AlgTheoryLab2::Matrix::Matrix() :
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric>::Matrix() :
 		_data(),
 		_rows(0),
-		_columns(0),
-		_rowStart(0),
-		_rowEnd(0),
-		_colStart(0),
-		_colEnd(0),
-		_rowsOrig(0),
-		_colsOrig(0)
+		_columns(0)
 	{
 	}
 
-	AlgTheoryLab2::Matrix::Matrix(const Matrix & other) :
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric>::Matrix(const Matrix & other) :
 		_data(),
 		_rows(0),
-		_columns(0),
-		_rowStart(0),
-		_rowEnd(0),
-		_colStart(0),
-		_colEnd(0),
-		_rowsOrig(0),
-		_colsOrig(0)
+		_columns(0)
 	{
 		*this = other;
 	}
 
-	AlgTheoryLab2::Matrix::Matrix(Matrix && other) :
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric>::Matrix(Matrix && other) :
 		_data(),
 		_rows(0),
-		_columns(0),
-		_rowStart(0),
-		_rowEnd(0),
-		_colStart(0),
-		_colEnd(0),
-		_rowsOrig(0),
-		_colsOrig(0)
+		_columns(0)
 	{
 		*this = std::move(other);
 	}
 
-	AlgTheoryLab2::Matrix & AlgTheoryLab2::Matrix::operator=(const AlgTheoryLab2::Matrix & other)
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(const AlgTheoryLab2::Matrix<Numeric> & other)
 	{
 		if (this != &other)
 		{
 			_rows = other._rows;
 			_columns = other._columns;
-
-			_rowStart = other._rowStart;
-			_rowEnd = other._rowEnd;
-			_colStart = other._colStart;
-			_colEnd = other._colEnd;
-
-			_rowsOrig = other._rowsOrig;
-			_colsOrig = other._colsOrig;
 
 			// copy some data
 			_data = other._data;
@@ -188,7 +260,8 @@ namespace AlgTheoryLab2
 		return *this;
 	}
 
-	AlgTheoryLab2::Matrix & AlgTheoryLab2::Matrix::operator=(AlgTheoryLab2::Matrix && other)
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(AlgTheoryLab2::Matrix<Numeric> && other)
 	{
 		if (this != &other)
 		{
@@ -198,105 +271,97 @@ namespace AlgTheoryLab2
 			_rows = other._rows;
 			_columns = other._columns;
 
-			_rowStart = other._rowStart;
-			_rowEnd = other._rowEnd;
-			_colStart = other._colStart;
-			_colEnd = other._colEnd;
-
-			_rowsOrig = other._rowsOrig;
-			_colsOrig = other._colsOrig;
-
 			other._rows = 0;
 			other._columns = 0;
-
-			other._rowStart = 0;
-			other._rowEnd = 0;
-			other._colStart = 0;
-			other._colEnd = 0;
-
-			other._rowsOrig = 0;
-			other._colsOrig = 0;
 		}
 		return *this;
 	}
 
-	double & AlgTheoryLab2::Matrix::At(int row, int column)
+	template<class Numeric>
+	double & AlgTheoryLab2::Matrix<Numeric>::At(int row, int column)
 	{
 		return _data[GetIndex(row, column)];
 	}
 
-	double AlgTheoryLab2::Matrix::At(int row, int column) const
+	template<class Numeric>
+	double const& AlgTheoryLab2::Matrix<Numeric>::At(int row, int column) const
 	{
 		return _data[GetIndex(row, column)];
 	}
 
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix & other) const
+	template<class Numeric>
+	Matrix<Numeric> Matrix<Numeric>::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix<Numeric> & other) const
 	{
 		int size = CalculateSizeOfAllAuxiliaryMatrices<21, 2>(_rows);
 
-		double* dataForAllAuxiliaryMatrices = AlgTheoryLab2::ArrayBuilder::CreateArray<double>(size);
+		double* dataForAllAuxiliaryMatrices = ArrayBuilder::CreateArray<double>(size);
 
-		AlgTheoryLab2::Matrix m(_rows, _columns);
-		MultiplyStrassenVinogradNoAllocP(other, m, dataForAllAuxiliaryMatrices);
+		Matrix<Numeric> m(_rows, _columns);
+		MultiplyStrassenVinogradNoAllocP(*this, other, m, dataForAllAuxiliaryMatrices);
 
-		AlgTheoryLab2::ArrayBuilder::DeleteArray(dataForAllAuxiliaryMatrices, size);
-
-		return m;
-	}
-
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybrid(const AlgTheoryLab2::Matrix & other) const
-	{
-		int size = CalculateSizeOfAllAuxiliaryMatrices<21, Matrix::_hybridFallbackThreshold>(_rows);
-
-		double* dataForAllAuxiliaryMatrices = AlgTheoryLab2::ArrayBuilder::CreateArray<double>(size);
-
-		AlgTheoryLab2::Matrix m(_rows, _columns);
-		MultiplyStrassenVinogradNoAllocHybridP(other, m, dataForAllAuxiliaryMatrices);
-
-		AlgTheoryLab2::ArrayBuilder::DeleteArray(dataForAllAuxiliaryMatrices, size);
+		ArrayBuilder::DeleteArray(dataForAllAuxiliaryMatrices, size);
 
 		return m;
 	}
 
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradAlloc(const AlgTheoryLab2::Matrix& other)const
+	template<class Numeric>
+	Matrix<Numeric> Matrix<Numeric>::MultiplyNaive(const Matrix<Numeric> & other) const
 	{
-		Matrix m = MultiplyStrassenVinogradAllocP(other);
-		return m;
-	}
-
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradAllocHybrid(const AlgTheoryLab2::Matrix & other) const
-	{
-		Matrix m = MultiplyStrassenVinogradAllocHybridP(other);
-		return m;
-	}
-
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyNaive(const AlgTheoryLab2::Matrix & other) const
-	{
-		AlgTheoryLab2::Matrix result(_rows, _columns);
-		MultiplyNaiveP(other, result);
+		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
+		MultiplyNaiveP(*this, other, result);
 		return result;
 	}
 
-	void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocP(const AlgTheoryLab2::Matrix& other, AlgTheoryLab2::Matrix& result, double* aux)const
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2>
+	inline void Matrix<Numeric>::CheckCompatibilityForMult(const _2DimArray1 & left, const _2DimArray2 & right)
+	{
+		if (!IsSameDimensions(left, right)
+			||
+			!isPowerOf2(left.Columns()) || !isPowerOf2(right.Rows()))
+			std::cerr << "\n!!!!!!!ERRRRROR!!!!!!!!!!!!!!!!\n";
+	}
+
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2>
+	inline void Matrix<Numeric>::CheckCompatibilityForAdd(const _2DimArray1 & left, const _2DimArray2 & right)
+	{
+		if (!IsSameDimensions(left, right))
+			std::cerr << "\nNot compatible dimensions\n";
+	}
+
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2>
+	inline bool Matrix<Numeric>::IsSameDimensions(const _2DimArray1 & left, const _2DimArray2 & right)
+	{
+		return left.Columns() == right.Columns() && left.Rows() == right.Rows();
+	}
+
+	template<class Numeric>
+	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+	void Matrix<Numeric>::MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, double* aux)
 	{
 #ifdef _DEBUG
-		CheckCompatibilityForMult(other);
+		CheckCompatibilityForMult(left, right);
 		double* auxBefore = aux;
 #endif
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
+		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
 
-		if (_columns * _rows == 4)
+		if (left.Columns() * left.Rows() == 4)
 		{
 			//split this matrix into 4 scalars
-			double a11 = At(0, 0);
-			double a12 = At(0, 1);
-			double a21 = At(1, 0);
-			double a22 = At(1, 1);
+			double a11 = left.At(0, 0);
+			double a12 = left.At(0, 1);
+			double a21 = left.At(1, 0);
+			double a22 = left.At(1, 1);
 
 			//split other matrix into 4 scalars
-			double b11 = other.At(0, 0);
-			double b12 = other.At(0, 1);
-			double b21 = other.At(1, 0);
-			double b22 = other.At(1, 1);
+			double b11 = right.At(0, 0);
+			double b12 = right.At(0, 1);
+			double b21 = right.At(1, 0);
+			double b22 = right.At(1, 1);
 
 			double s1 = a21 + a22;
 			double s2 = s1 - a11;
@@ -323,226 +388,102 @@ namespace AlgTheoryLab2
 			result.At(1, 0) = t2 - p7;
 			result.At(1, 1) = t2 + p5;
 			return;
-	}
+		}
 
-		int size = _rows / 2;
+		int size = left.Columns() / 2;
 
 		// split this matrix into 4 matrices
-		Matrix const a11 = CreateSubView(0, 0, size, size);
-		Matrix const a12 = CreateSubView(0, size, size, size + size);
-		Matrix const a21 = CreateSubView(size, 0, size + size, size);
-		Matrix const a22 = CreateSubView(size, size, size + size, size + size);
+		auto a11 = left.CreateSubView(0, 0, size, size);
+		auto a12 = left.CreateSubView(0, size, size, size + size);
+		auto a21 = left.CreateSubView(size, 0, size + size, size);
+		auto a22 = left.CreateSubView(size, size, size + size, size + size);
 
 		// split other matrix into 4 matrices
-		Matrix const b11 = other.CreateSubView(0, 0, size, size);
-		Matrix const b12 = other.CreateSubView(0, size, size, size + size);
-		Matrix const b21 = other.CreateSubView(size, 0, size + size, size);
-		Matrix const b22 = other.CreateSubView(size, size, size + size, size + size);
+		auto b11 = right.CreateSubView(0, 0, size, size);
+		auto b12 = right.CreateSubView(0, size, size, size + size);
+		auto b21 = right.CreateSubView(size, 0, size + size, size);
+		auto b22 = right.CreateSubView(size, size, size + size, size + size);
 
-		AlgTheoryLab2::Matrix s1(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s1(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s2(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s2(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s3(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s3(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s4(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s4(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s5(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s5(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s6(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s6(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s7(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s7(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix s8(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> s8(size, size, aux);
 		aux += size * size;
 
-		a21.Add(a22, s1);
-		s1.Subtract(a11, s2);
-		a11.Subtract(a21, s3);
-		a12.Subtract(s2, s4);
-		b12.Subtract(b11, s5);
-		b22.Subtract(s5, s6);
-		b22.Subtract(b12, s7);
-		s6.Subtract(b21, s8);
+		Add(a21, a22, s1);			 //a21 + a22;
+		Subtract(s1, a11, s2);		 //s1 - a11;
+		Subtract(a11, a21, s3);		 //a11 - a21;
+		Subtract(a12, s2, s4);		 //a12 - s2;
+		Subtract(b12, b11, s5);		 //b12 - b11;
+		Subtract(b22, s5, s6);		 //b22 - s5;
+		Subtract(b22, b12, s7);		 //b22 - b12;
+		Subtract(s6, b21, s8);		 //s6 - b21;
 
-		AlgTheoryLab2::Matrix p1(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p1(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p2(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p2(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p3(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p3(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p4(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p4(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p5(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p5(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p6(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p6(size, size, aux);
 		aux += size * size;
 
-		AlgTheoryLab2::Matrix p7(size, size, aux);
+		AlgTheoryLab2::Matrix<Numeric> p7(size, size, aux);
 		aux += size * size;
 
 		// all these recursive calls can use the same memory block because they aren't simultaneuous
 		// also memory they were using is no longer needed so we can rewrite it with something actually useful (t1,t2,c11-c22)
-		s2.MultiplyStrassenVinogradNoAllocP(s6, p1, aux);
-		a11.MultiplyStrassenVinogradNoAllocP(b11, p2, aux);
-		a12.MultiplyStrassenVinogradNoAllocP(b21, p3, aux);
-		s3.MultiplyStrassenVinogradNoAllocP(s7, p4, aux);
-		s1.MultiplyStrassenVinogradNoAllocP(s5, p5, aux);
-		s4.MultiplyStrassenVinogradNoAllocP(b22, p6, aux);
-		a22.MultiplyStrassenVinogradNoAllocP(s8, p7, aux);
+		MultiplyStrassenVinogradNoAllocP(s2, s6, p1, aux);			//s2 * s6;
+		MultiplyStrassenVinogradNoAllocP(a11, b11, p2, aux);		//a11 * b11;
+		MultiplyStrassenVinogradNoAllocP(a12, b21, p3, aux);		//a12 * b21;
+		MultiplyStrassenVinogradNoAllocP(s3, s7, p4, aux);			//s3 * s7;
+		MultiplyStrassenVinogradNoAllocP(s1, s5, p5, aux);			//s1 * s5;
+		MultiplyStrassenVinogradNoAllocP(s4, b22, p6, aux);			//s4 * b22;
+		MultiplyStrassenVinogradNoAllocP(a22, s8, p7, aux);			//a22 * s8;
 
-		AlgTheoryLab2::Matrix t1(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix t2(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> t1(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> t2(size, size, aux); aux += size * size;
 
-		p1.Add(p2, t1);
-		t1.Add(p4, t2);
+		Add(p1, p2, t1);	  //p1 + p2;
+		Add(t1, p4, t2);	  //t1 + p4;
 
-		AlgTheoryLab2::Matrix c11(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c12(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c21(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c22(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c11(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c12(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c21(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c22(size, size, aux); aux += size * size;
 
-		p2.Add(p3, c11);
-		t1.Add(p5, c12);
-		c12.Add(p6, c12);
-		t2.Subtract(p7, c21);
-		t2.Add(p5, c22);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, col) = c11.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, size + col) = c12.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, col) = c21.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, size + col) = c22.At(row, col);
-}
-
-	void AlgTheoryLab2::Matrix::MultiplyStrassenVinogradNoAllocHybridP(const AlgTheoryLab2::Matrix& other, AlgTheoryLab2::Matrix& result, double* aux)const
-	{
-#ifdef _DEBUG
-		CheckCompatibilityForMult(other);
-		double* auxBefore = aux;
-#endif
-
-		if (_columns * _rows <= Matrix::_hybridFallbackThreshold * Matrix::_hybridFallbackThreshold)
-		{
-			MultiplyNaiveP(other, result);
-			return;
-	}
-
-		int size = _rows / 2;
-
-		// split this matrix into 4 matrices
-		Matrix const a11 = CreateSubView(0, 0, size, size);
-		Matrix const a12 = CreateSubView(0, size, size, size + size);
-		Matrix const a21 = CreateSubView(size, 0, size + size, size);
-		Matrix const a22 = CreateSubView(size, size, size + size, size + size);
-
-		// split other matrix into 4 matrices
-		Matrix const b11 = other.CreateSubView(0, 0, size, size);
-		Matrix const b12 = other.CreateSubView(0, size, size, size + size);
-		Matrix const b21 = other.CreateSubView(size, 0, size + size, size);
-		Matrix const b22 = other.CreateSubView(size, size, size + size, size + size);
-
-		AlgTheoryLab2::Matrix s1(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s2(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s3(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s4(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s5(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s6(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s7(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix s8(size, size, aux);
-		aux += size * size;
-
-		a21.Add(a22, s1);
-		s1.Subtract(a11, s2);
-		a11.Subtract(a21, s3);
-		a12.Subtract(s2, s4);
-		b12.Subtract(b11, s5);
-		b22.Subtract(s5, s6);
-		b22.Subtract(b12, s7);
-		s6.Subtract(b21, s8);
-
-		AlgTheoryLab2::Matrix p1(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p2(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p3(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p4(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p5(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p6(size, size, aux);
-		aux += size * size;
-
-		AlgTheoryLab2::Matrix p7(size, size, aux);
-		aux += size * size;
-
-		// all these recursive calls can use the same memory block because they aren't simultaneuous
-		s2.MultiplyStrassenVinogradNoAllocHybridP(s6, p1, aux);
-		a11.MultiplyStrassenVinogradNoAllocHybridP(b11, p2, aux);
-		a12.MultiplyStrassenVinogradNoAllocHybridP(b21, p3, aux);
-		s3.MultiplyStrassenVinogradNoAllocHybridP(s7, p4, aux);
-		s1.MultiplyStrassenVinogradNoAllocHybridP(s5, p5, aux);
-		s4.MultiplyStrassenVinogradNoAllocHybridP(b22, p6, aux);
-		a22.MultiplyStrassenVinogradNoAllocHybridP(s8, p7, aux);
-
-		AlgTheoryLab2::Matrix t1(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix t2(size, size, aux); aux += size * size;
-
-		p1.Add(p2, t1);
-		t1.Add(p4, t2);
-
-		AlgTheoryLab2::Matrix c11(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c12(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c21(size, size, aux); aux += size * size;
-		AlgTheoryLab2::Matrix c22(size, size, aux); aux += size * size;
-
-		p2.Add(p3, c11);
-		t1.Add(p5, c12);
-		c12.Add(p6, c12);
-		t2.Subtract(p7, c21);
-		t2.Add(p5, c22);
+		Add(p2, p3, c11);		//p2 + p3;
+		Add(t1, p5, c12);		//t1 + p5 + p6;
+		Add(c12, p6, c12);		//t2 - p7;
+		Subtract(t2, p7, c21);	//t2 + p5;
+		Add(t2, p5, c22);		//
 
 		for (int col = 0; col < size; col++)
 			for (int row = 0; row < size; row++)
@@ -561,314 +502,53 @@ namespace AlgTheoryLab2
 				result.At(size + row, size + col) = c22.At(row, col);
 	}
 
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradAllocP(const AlgTheoryLab2::Matrix & other) const
-	{
-#ifdef _DEBUG
-		if (_columns != other._columns || _rows != other._rows
-			||
-			!isPowerOf2(_columns) || !isPowerOf2(_rows))
-			std::cerr << "!!!!!!!ERRRRROR!!!!!!!!!!!!!!!!";
-#endif
-
-		if (_columns * _rows == 4)
-		{
-			//split this matrix into 4 scalars
-			double a11 = At(0, 0);
-			double a12 = At(0, 1);
-			double a21 = At(1, 0);
-			double a22 = At(1, 1);
-
-			//split other matrix into 4 scalars
-			double b11 = other.At(0, 0);
-			double b12 = other.At(0, 1);
-			double b21 = other.At(1, 0);
-			double b22 = other.At(1, 1);
-
-			double s1 = a21 + a22;
-			double s2 = s1 - a11;
-			double s3 = a11 - a21;
-			double s4 = a12 - s2;
-			double s5 = b12 - b11;
-			double s6 = b22 - s5;
-			double s7 = b22 - b12;
-			double s8 = s6 - b21;
-
-			double p1 = s2 * s6;
-			double p2 = a11 * b11;
-			double p3 = a12 * b21;
-			double p4 = s3 * s7;
-			double p5 = s1 * s5;
-			double p6 = s4 * b22;
-			double p7 = a22 * s8;
-
-			double t1 = p1 + p2;
-			double t2 = t1 + p4;
-
-			Matrix result(2, 2);
-			result.At(0, 0) = p2 + p3;
-			result.At(0, 1) = t1 + p5 + p6;
-			result.At(1, 0) = t2 - p7;
-			result.At(1, 1) = t2 + p5;
-			return result;
-	}
-
-		int size = _rows / 2;
-
-		// split this matrix into 4 matrices
-		Matrix const a11 = CreateSubView(0, 0, size, size);
-		Matrix const a12 = CreateSubView(0, size, size, size + size);
-		Matrix const a21 = CreateSubView(size, 0, size + size, size);
-		Matrix const a22 = CreateSubView(size, size, size + size, size + size);
-
-		// split other matrix into 4 matrices
-		Matrix const b11 = other.CreateSubView(0, 0, size, size);
-		Matrix const b12 = other.CreateSubView(0, size, size, size + size);
-		Matrix const b21 = other.CreateSubView(size, 0, size + size, size);
-		Matrix const b22 = other.CreateSubView(size, size, size + size, size + size);
-
-		Matrix s1 = a21 + a22;
-		Matrix s2 = s1 - a11;
-		Matrix s3 = a11 - a21;
-		Matrix s4 = a12 - s2;
-		Matrix s5 = b12 - b11;
-		Matrix s6 = b22 - s5;
-		Matrix s7 = b22 - b12;
-		Matrix s8 = s6 - b21;
-
-		Matrix p1 = s2.MultiplyStrassenVinogradAllocP(s6);
-		Matrix p2 = a11.MultiplyStrassenVinogradAllocP(b11);
-		Matrix p3 = a12.MultiplyStrassenVinogradAllocP(b21);
-		Matrix p4 = s3.MultiplyStrassenVinogradAllocP(s7);
-		Matrix p5 = s1.MultiplyStrassenVinogradAllocP(s5);
-		Matrix p6 = s4.MultiplyStrassenVinogradAllocP(b22);
-		Matrix p7 = a22.MultiplyStrassenVinogradAllocP(s8);
-
-		Matrix t1 = p1 + p2;
-		Matrix t2 = t1 + p4;
-
-		Matrix c11 = p2 + p3;
-		Matrix c12 = t1 + p5 + p6;
-		Matrix c21 = t2 - p7;
-		Matrix c22 = t2 + p5;
-
-		Matrix result(_rows, _columns);
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, col) = c11.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, size + col) = c12.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, col) = c21.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, size + col) = c22.At(row, col);
-
-		return result;
-	}
-
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::MultiplyStrassenVinogradAllocHybridP(const AlgTheoryLab2::Matrix& other)const
-	{
-#ifdef _DEBUG
-		CheckCompatibilityForMult(other);
-#endif
-
-		if (_columns * _rows <= Matrix::_hybridFallbackThreshold * Matrix::_hybridFallbackThreshold)
-		{
-			return MultiplyNaive(other);
-	}
-
-		int size = _rows / 2;
-
-		// split this matrix into 4 matrices
-		Matrix const a11 = CreateSubView(0, 0, size, size);
-		Matrix const a12 = CreateSubView(0, size, size, size + size);
-		Matrix const a21 = CreateSubView(size, 0, size + size, size);
-		Matrix const a22 = CreateSubView(size, size, size + size, size + size);
-
-		// split other matrix into 4 matrices
-		Matrix const b11 = other.CreateSubView(0, 0, size, size);
-		Matrix const b12 = other.CreateSubView(0, size, size, size + size);
-		Matrix const b21 = other.CreateSubView(size, 0, size + size, size);
-		Matrix const b22 = other.CreateSubView(size, size, size + size, size + size);
-
-		Matrix s1 = a21 + a22;
-		Matrix s2 = s1 - a11;
-		Matrix s3 = a11 - a21;
-		Matrix s4 = a12 - s2;
-		Matrix s5 = b12 - b11;
-		Matrix s6 = b22 - s5;
-		Matrix s7 = b22 - b12;
-		Matrix s8 = s6 - b21;
-
-		Matrix p1 = s2.MultiplyStrassenVinogradAllocHybridP(s6);
-		Matrix p2 = a11.MultiplyStrassenVinogradAllocHybridP(b11);
-		Matrix p3 = a12.MultiplyStrassenVinogradAllocHybridP(b21);
-		Matrix p4 = s3.MultiplyStrassenVinogradAllocHybridP(s7);
-		Matrix p5 = s1.MultiplyStrassenVinogradAllocHybridP(s5);
-		Matrix p6 = s4.MultiplyStrassenVinogradAllocHybridP(b22);
-		Matrix p7 = a22.MultiplyStrassenVinogradAllocHybridP(s8);
-
-		Matrix t1 = p1 + p2;
-		Matrix t2 = t1 + p4;
-
-		Matrix c11 = p2 + p3;
-		Matrix c12 = t1 + p5 + p6;
-		Matrix c21 = t2 - p7;
-		Matrix c22 = t2 + p5;
-
-		Matrix result(_rows, _columns);
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, col) = c11.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(row, size + col) = c12.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, col) = c21.At(row, col);
-
-		for (int col = 0; col < size; col++)
-			for (int row = 0; row < size; row++)
-				result.At(size + row, size + col) = c22.At(row, col);
-
-		return result;
-	}
-
-	void AlgTheoryLab2::Matrix::Add(const AlgTheoryLab2::Matrix & other, AlgTheoryLab2::Matrix & writeTo) const
+	template<class Numeric>
+	void Matrix<Numeric>::MultiplyNaiveP(const Matrix<Numeric> & left, const Matrix<Numeric> & right, Matrix<Numeric> & result)
 	{
 #if _DEBUG
-		CheckCompatibilityForAdd(other);
-#endif
-		for (int col = 0; col < _columns; col++)
-			for (int row = 0; row < _rows; row++)
-				writeTo.At(row, col) = At(row, col) + other.At(row, col);
-	}
-
-	void AlgTheoryLab2::Matrix::Subtract(const AlgTheoryLab2::Matrix & other, Matrix & writeTo) const
-	{
-#if _DEBUG
-		CheckCompatibilityForAdd(other);
-#endif
-		for (int col = 0; col < _columns; col++)
-			for (int row = 0; row < _rows; row++)
-				writeTo.At(row, col) = At(row, col) - other.At(row, col);
-	}
-
-	void AlgTheoryLab2::Matrix::MultiplyNaiveP(const AlgTheoryLab2::Matrix & other, AlgTheoryLab2::Matrix& result) const
-	{
-#if _DEBUG
-		CheckCompatibilityForMult(other);
+		CheckCompatibilityForMult(left, right);
 #endif
 		for (int cColumn = 0; cColumn < result._columns; cColumn++)
 			for (int cRow = 0; cRow < result._rows; cRow++)
 			{
 				double sum = 0;
-				for (int i = 0; i < _columns; i++)
-					sum += At(cRow, i) * other.At(i, cColumn);
+				for (int i = 0; i < left._columns; i++)
+					sum += left.At(cRow, i) * right.At(i, cColumn);
 				result.At(cRow, cColumn) = sum;
-	}
+			}
 	}
 
-	int AlgTheoryLab2::Matrix::Rows() const
+	template<class Numeric>
+	int AlgTheoryLab2::Matrix<Numeric>::Rows() const
 	{
 		return _rows;
 	}
 
-	int AlgTheoryLab2::Matrix::Columns() const
+	template<class Numeric>
+	int AlgTheoryLab2::Matrix<Numeric>::Columns() const
 	{
 		return _columns;
 	}
 
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const
+	template<class Numeric>
+	int AlgTheoryLab2::Matrix<Numeric>::GetIndex(int row, int column) const
 	{
-		// construct manually cause i'm a bydlocoder
-		Matrix res;
-		res._data = std::move(Array<double>(_data.Size(), _data.Data()));
-
-		res._rows = rowEnd - rowStart;
-		res._columns = colEnd - colStart;
-
-		res._rowStart = _rowStart + rowStart;
-		res._colStart = _colStart + colStart;
-		res._rowEnd = res._rows + _rowEnd - rowEnd;
-		res._colEnd = res._columns + _colEnd - colEnd;
-
-#if _DEBUG
-		if (res._rowEnd <= 0
-			||
-			res._colEnd <= 0)
-			std::cerr << "\nError: impossible values of res._rowEnd and res._colEnd\n";
-#endif
-
-		res._rowsOrig = _rowsOrig;
-		res._colsOrig = _colsOrig;
-
-		return res;
+		return _rows * column + row;
 	}
 
-	int AlgTheoryLab2::Matrix::GetIndex(int row, int column) const
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric> AlgTheoryLab2::Matrix<Numeric>::operator+(const Matrix<Numeric>& a)const
 	{
-		// check relative coords
-#ifdef _DEBUG
-		CheckBounds(row, column, _rows, _columns);
-#endif
-
-		row += _rowStart;
-		column += _colStart;
-
-		// check absolute coords
-#ifdef _DEBUG
-		CheckBounds(row, column, _rowsOrig, _colsOrig);
-#endif
-
-		return _rowsOrig * column + row;
-	}
-
-	bool AlgTheoryLab2::Matrix::IsSameDimensions(const AlgTheoryLab2::Matrix & other) const
-	{
-		return _columns == other._columns && _rows == other._rows;
-	}
-
-	void AlgTheoryLab2::Matrix::CheckBounds(int row, int column, int rows, int columns)
-	{
-		if (row < 0 || row >= rows
-			||
-			column < 0 || column >= columns)
-			std::cerr << "\nAt bounds exceeded: row " << row << " col " << column << " but size is rows " << rows << " cols " << columns << "\n";
-	}
-
-	void AlgTheoryLab2::Matrix::CheckCompatibilityForMult(const AlgTheoryLab2::Matrix & other) const
-	{
-		if (!IsSameDimensions(other)
-			||
-			!isPowerOf2(_columns) || !isPowerOf2(_rows))
-			std::cerr << "\n!!!!!!!ERRRRROR!!!!!!!!!!!!!!!!\n";
-	}
-
-	void AlgTheoryLab2::Matrix::CheckCompatibilityForAdd(const AlgTheoryLab2::Matrix & other) const
-	{
-		if (!IsSameDimensions(other))
-			std::cerr << "\nNot compatible dimensions\n";
-	}
-
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::operator+(const Matrix& a)const
-	{
-		AlgTheoryLab2::Matrix result(_rows, _columns);
-		Add(a, result);
+		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
+		Add(*this, a, result);
 		return result;
 	}
 
-	AlgTheoryLab2::Matrix AlgTheoryLab2::Matrix::operator-(const AlgTheoryLab2::Matrix& a)const
+	template<class Numeric>
+	AlgTheoryLab2::Matrix<Numeric> AlgTheoryLab2::Matrix<Numeric>::operator-(const AlgTheoryLab2::Matrix<Numeric>& a)const
 	{
-		AlgTheoryLab2::Matrix result(_rows, _columns);
-		Subtract(a, result);
+		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
+		Subtract(*this, a, result);
 		return result;
 	}
-	}
+}
