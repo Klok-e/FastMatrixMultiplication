@@ -24,6 +24,9 @@ namespace AlgTheoryLab2
 			_createdArrays += 1;
 			_createdArrSumSize += size;
 			T* newArr = new T[size];
+#if _DEBUG
+			std::memset(newArr, -1, sizeof(T)*size);
+#endif
 			return newArr;
 		}
 
