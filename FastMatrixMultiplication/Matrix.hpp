@@ -292,10 +292,9 @@ namespace AlgTheoryLab2
 	template<class Numeric>
 	Matrix<Numeric> Matrix<Numeric>::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix<Numeric> & other) const
 	{
-		int size = CalculateSizeOfAllAuxiliaryMatrices<15, 2>(_rows);
+		int size = CalculateSizeOfAllAuxiliaryMatrices<21, 2>(_rows);
 
 		double* dataForAllAuxiliaryMatrices = ArrayBuilder::CreateArray<double>(size);
-		auxBefore = dataForAllAuxiliaryMatrices;
 		Matrix<Numeric> m(_rows, _columns);
 		MultiplyStrassenVinogradNoAllocP(*this, other, m, dataForAllAuxiliaryMatrices);
 
@@ -467,17 +466,16 @@ namespace AlgTheoryLab2
 		MultiplyStrassenVinogradNoAllocP(s4, b22, p6, aux);			//s4 * b22;
 		MultiplyStrassenVinogradNoAllocP(a22, s8, p7, aux);			//a22 * s8;
 
-		// move because they are not used anymore so they don't need their data anyway
-		AlgTheoryLab2::Matrix<Numeric> t1(std::move(s1));
-		AlgTheoryLab2::Matrix<Numeric> t2(std::move(s2));
+		AlgTheoryLab2::Matrix<Numeric> t1(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> t2(size, size, aux); aux += size * size;
 
 		Add(p1, p2, t1);	  //p1 + p2;
 		Add(t1, p4, t2);	  //t1 + p4;
 
-		AlgTheoryLab2::Matrix<Numeric> c11(std::move(s3));
-		AlgTheoryLab2::Matrix<Numeric> c12(std::move(s4));
-		AlgTheoryLab2::Matrix<Numeric> c21(std::move(s5));
-		AlgTheoryLab2::Matrix<Numeric> c22(std::move(s6));
+		AlgTheoryLab2::Matrix<Numeric> c11(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c12(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c21(size, size, aux); aux += size * size;
+		AlgTheoryLab2::Matrix<Numeric> c22(size, size, aux); aux += size * size;
 
 		Add(p2, p3, c11);		//p2 + p3;
 		Add(t1, p5, c12);		//t1 + p5 + p6;
