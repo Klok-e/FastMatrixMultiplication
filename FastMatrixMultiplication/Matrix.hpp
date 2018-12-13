@@ -16,7 +16,7 @@ namespace AlgTheoryLab2
 			public IReadOnlyArray2D<Numeric>
 		{
 		public:
-			// normal constructor
+			// construct from matrix
 			MatrixView(Matrix<Numeric> const* matrix, int rowStart, int colStart, int rowEnd, int colEnd) :
 				_matrix(matrix),
 				_rowStart(rowStart),
@@ -34,26 +34,22 @@ namespace AlgTheoryLab2
 #endif
 			}
 
-			// normal constructor
+			// construct from another view
 			MatrixView(MatrixView const* view, int rowStart, int colStart, int rowEnd, int colEnd) :
-				_matrix(view->_matrix)
+				_matrix(view->_matrix),
+				_rows(rowEnd - rowStart),
+				_columns(colEnd - colStart),
+				_rowStart(view->_rowStart + rowStart),
+				_colStart(view->_colStart + colStart),
+				_rowEnd(_rows + _rowStart),
+				_colEnd(_columns + _colStart)
 			{
-				_rows = rowEnd - rowStart;
-				_columns = colEnd - colStart;
-
-				_rowStart = view->_rowStart + rowStart;
-				_colStart = view->_colStart + colStart;
-				_rowEnd = _rows + _rowStart;
-				_colEnd = _columns + _colStart;
-
 #if _DEBUG
 				if (_rowEnd <= 0
 					||
 					_colEnd <= 0)
 					std::cerr << "\nError: impossible values of res._rowEnd and res._colEnd\n";
 #endif
-
-				_rows = _rows;
 			}
 
 			MatrixView CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const
@@ -104,9 +100,6 @@ namespace AlgTheoryLab2
 		// assignment move operator
 		Matrix<Numeric>& operator=(Matrix<Numeric>&& other);
 
-		Matrix<Numeric> operator+(const Matrix<Numeric>& other) const;
-		Matrix<Numeric> operator-(const Matrix<Numeric>& other) const;
-
 		Matrix<Numeric> MultiplyStrassenVinogradNoAlloc(const Matrix<Numeric>& other) const;
 		Matrix<Numeric> MultiplyNaive(const Matrix<Numeric> & other) const;
 
@@ -116,6 +109,7 @@ namespace AlgTheoryLab2
 		int Rows() const override;
 		int Columns() const override;
 
+		// if i move this out compiler gives weird errors i don't understand
 		MatrixView CreateSubView(int rowStart, int colStart, int rowEnd, int colEnd) const
 		{
 			return MatrixView(this, rowStart, colStart, rowEnd, colEnd);
@@ -139,7 +133,8 @@ namespace AlgTheoryLab2
 		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
 		static void MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, Numeric* aux);
 
-		static void MultiplyNaiveP(const Matrix<Numeric> & left, const Matrix<Numeric> & right, Matrix<Numeric> & result);
+		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+		static void MultiplyNaiveP(const _2DimArray1 & left, const _2DimArray2 & right, _2DimArray3 & result);
 
 		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
 		static void Add(const _2DimArray1& a, const _2DimArray2& b, _2DimArray3& writeTo);
@@ -155,6 +150,9 @@ namespace AlgTheoryLab2
 	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
 	inline void Matrix<Numeric>::Add(const _2DimArray1 & a, const _2DimArray2 & b, _2DimArray3 & writeTo)
 	{
+#if _DEBUG
+		CheckCompatibilityForAdd(a, b);
+#endif
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
 		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
@@ -170,6 +168,9 @@ namespace AlgTheoryLab2
 	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
 	inline void Matrix<Numeric>::Subtract(const _2DimArray1 & a, const _2DimArray2 & b, _2DimArray3 & writeTo)
 	{
+#if _DEBUG
+		CheckCompatibilityForAdd(a, b);
+#endif
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
 		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
@@ -501,11 +502,16 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	void Matrix<Numeric>::MultiplyNaiveP(const Matrix<Numeric> & left, const Matrix<Numeric> & right, Matrix<Numeric> & result)
+	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
+	inline void Matrix<Numeric>::MultiplyNaiveP(const _2DimArray1 & left, const _2DimArray2 & right, _2DimArray3 & result)
 	{
 #if _DEBUG
 		CheckCompatibilityForMult(left, right);
 #endif
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray1>::value);
+		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
+		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
+
 		for (int cColumn = 0; cColumn < result._columns; cColumn++)
 			for (int cRow = 0; cRow < result._rows; cRow++)
 			{
@@ -532,21 +538,5 @@ namespace AlgTheoryLab2
 	int AlgTheoryLab2::Matrix<Numeric>::GetIndex(int row, int column) const
 	{
 		return _rows * column + row;
-	}
-
-	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric> AlgTheoryLab2::Matrix<Numeric>::operator+(const Matrix<Numeric>& a)const
-	{
-		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
-		Add(*this, a, result);
-		return result;
-	}
-
-	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric> AlgTheoryLab2::Matrix<Numeric>::operator-(const AlgTheoryLab2::Matrix<Numeric>& a)const
-	{
-		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
-		Subtract(*this, a, result);
-		return result;
 	}
 }
