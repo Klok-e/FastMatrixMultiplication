@@ -81,8 +81,8 @@ int main()
 	for (int sizeInd = 0; sizeInd < sizes.size(); sizeInd++)
 	{
 		int size = sizes[sizeInd];
-		AlgTheoryLab2::Matrix<double> a(size, size);
-		AlgTheoryLab2::Matrix<double> b(size, size);
+		AlgTheoryLab2::Matrix<float> a(size, size);
+		AlgTheoryLab2::Matrix<float> b(size, size);
 
 		AlgTheoryLab2::fillWithRandom(a, -1000, 1000);
 		AlgTheoryLab2::fillWithRandom(b, -1000, 1000);

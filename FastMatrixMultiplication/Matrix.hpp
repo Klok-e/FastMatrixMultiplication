@@ -7,13 +7,13 @@ namespace AlgTheoryLab2
 {
 	template<class Numeric>
 	class Matrix final :
-		public virtual AlgTheoryLab2::IReadWriteArray2D<double>
+		public AlgTheoryLab2::IReadWriteArray2D<Numeric>
 	{
 	public:
 		static const int _hybridFallbackThreshold = 64;
 
 		class MatrixView final :
-			public virtual IReadOnlyArray2D<Numeric>
+			public IReadOnlyArray2D<Numeric>
 		{
 		public:
 			// normal constructor
@@ -87,7 +87,7 @@ namespace AlgTheoryLab2
 		Matrix(int rows, int columns, bool fillWithZeros = false);
 
 		// construct with this array
-		Matrix(int rows, int columns, double* data, bool fillWithZeros = false);
+		Matrix(int rows, int columns, Numeric* data, bool fillWithZeros = false);
 
 		// default constructor
 		Matrix();
@@ -110,8 +110,8 @@ namespace AlgTheoryLab2
 		Matrix<Numeric> MultiplyStrassenVinogradNoAlloc(const Matrix<Numeric>& other) const;
 		Matrix<Numeric> MultiplyNaive(const Matrix<Numeric> & other) const;
 
-		double& At(int row, int column) override;
-		double const& At(int row, int column) const override;
+		Numeric& At(int row, int column) override;
+		Numeric const& At(int row, int column) const override;
 
 		int Rows() const override;
 		int Columns() const override;
@@ -122,7 +122,7 @@ namespace AlgTheoryLab2
 		}
 
 	private:
-		Array<double> _data;
+		Array<Numeric> _data;
 		int _rows, _columns;
 
 		int GetIndex(int row, int column) const;
@@ -137,7 +137,7 @@ namespace AlgTheoryLab2
 		static bool IsSameDimensions(const _2DimArray1& left, const _2DimArray2& right);
 
 		template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
-		static void MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, double* aux);
+		static void MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, Numeric* aux);
 
 		static void MultiplyNaiveP(const Matrix<Numeric> & left, const Matrix<Numeric> & right, Matrix<Numeric> & result);
 
@@ -207,7 +207,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, double * data, bool fillWithZeros) :
+	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, Numeric * data, bool fillWithZeros) :
 		_data(rows * columns, data),
 		_rows(rows),
 		_columns(columns)
@@ -278,13 +278,13 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	double & AlgTheoryLab2::Matrix<Numeric>::At(int row, int column)
+	Numeric & AlgTheoryLab2::Matrix<Numeric>::At(int row, int column)
 	{
 		return _data[GetIndex(row, column)];
 	}
 
 	template<class Numeric>
-	double const& AlgTheoryLab2::Matrix<Numeric>::At(int row, int column) const
+	Numeric const& AlgTheoryLab2::Matrix<Numeric>::At(int row, int column) const
 	{
 		return _data[GetIndex(row, column)];
 	}
@@ -294,7 +294,7 @@ namespace AlgTheoryLab2
 	{
 		int size = CalculateSizeOfAllAuxiliaryMatrices<21, 2>(_rows);
 
-		double* dataForAllAuxiliaryMatrices = ArrayBuilder::CreateArray<double>(size);
+		Numeric* dataForAllAuxiliaryMatrices = ArrayBuilder::CreateArray<Numeric>(size);
 		Matrix<Numeric> m(_rows, _columns);
 		MultiplyStrassenVinogradNoAllocP(*this, other, m, dataForAllAuxiliaryMatrices);
 
@@ -338,7 +338,7 @@ namespace AlgTheoryLab2
 
 	template<class Numeric>
 	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
-	void Matrix<Numeric>::MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, double* aux)
+	void Matrix<Numeric>::MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, Numeric* aux)
 	{
 #ifdef _DEBUG
 		CheckCompatibilityForMult(left, right);
