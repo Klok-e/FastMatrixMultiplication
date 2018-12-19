@@ -22,7 +22,7 @@ namespace AlgTheoryLab2
 		T const& operator[](int i) const;
 
 		int Size() const;
-		T* Data() const;
+		T const* Data() const;
 
 	private:
 		T* _data;
@@ -146,7 +146,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<typename T>
-	inline T* Array<T>::Data() const
+	inline T const* Array<T>::Data() const
 	{
 		return _data;
 	}
