@@ -293,7 +293,7 @@ namespace AlgTheoryLab2
 	template<class Numeric>
 	Matrix<Numeric> Matrix<Numeric>::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix<Numeric> & other) const
 	{
-		int size = CalculateSizeOfAllAuxiliaryMatrices<21, 2>(_rows);
+		int size = CalculateSizeOfAllAuxiliaryMatrices<21, _hybridFallbackThreshold>(_rows);
 
 		Numeric* dataForAllAuxiliaryMatrices = ArrayBuilder::CreateArray<Numeric>(size);
 		Matrix<Numeric> m(_rows, _columns);
@@ -348,44 +348,9 @@ namespace AlgTheoryLab2
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
 		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
 
-		if (left.Columns() * left.Rows() == 4)
+		if (left.Columns() <= _hybridFallbackThreshold)
 		{
-			//split this matrix into 4 scalars
-			double a11 = left.At(0, 0);
-			double a12 = left.At(0, 1);
-			double a21 = left.At(1, 0);
-			double a22 = left.At(1, 1);
-
-			//split other matrix into 4 scalars
-			double b11 = right.At(0, 0);
-			double b12 = right.At(0, 1);
-			double b21 = right.At(1, 0);
-			double b22 = right.At(1, 1);
-
-			double s1 = a21 + a22;
-			double s2 = s1 - a11;
-			double s3 = a11 - a21;
-			double s4 = a12 - s2;
-			double s5 = b12 - b11;
-			double s6 = b22 - s5;
-			double s7 = b22 - b12;
-			double s8 = s6 - b21;
-
-			double p1 = s2 * s6;
-			double p2 = a11 * b11;
-			double p3 = a12 * b21;
-			double p4 = s3 * s7;
-			double p5 = s1 * s5;
-			double p6 = s4 * b22;
-			double p7 = a22 * s8;
-
-			double t1 = p1 + p2;
-			double t2 = t1 + p4;
-
-			result.At(0, 0) = p2 + p3;
-			result.At(0, 1) = t1 + p5 + p6;
-			result.At(1, 0) = t2 - p7;
-			result.At(1, 1) = t2 + p5;
+			MultiplyNaiveP(left, right, result);
 			return;
 		}
 
@@ -512,11 +477,11 @@ namespace AlgTheoryLab2
 		static_assert(std::is_base_of<IReadOnlyArray2D<Numeric>, _2DimArray2>::value);
 		static_assert(std::is_base_of<IWriteOnlyArray2D<Numeric>, _2DimArray3>::value);
 
-		for (int cColumn = 0; cColumn < result._columns; cColumn++)
-			for (int cRow = 0; cRow < result._rows; cRow++)
+		for (int cColumn = 0; cColumn < result.Columns(); cColumn++)
+			for (int cRow = 0; cRow < result.Rows(); cRow++)
 			{
 				double sum = 0;
-				for (int i = 0; i < left._columns; i++)
+				for (int i = 0; i < left.Columns(); i++)
 					sum += left.At(cRow, i) * right.At(i, cColumn);
 				result.At(cRow, cColumn) = sum;
 			}
