@@ -184,7 +184,7 @@ namespace AlgTheoryLab2
 
 	template<class Numeric>
 	template<int auxCount, int stopAtDimensions>
-	int Matrix<Numeric>::CalculateSizeOfAllAuxiliaryMatrices(const int n)
+	inline int Matrix<Numeric>::CalculateSizeOfAllAuxiliaryMatrices(const int n)
 	{
 		static_assert(isPowerOf2(stopAtDimensions));
 
@@ -194,7 +194,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, bool fillWithZeros) :
+	inline AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, bool fillWithZeros) :
 		_data(rows * columns),
 		_rows(rows),
 		_columns(columns)
@@ -208,7 +208,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, Numeric * data, bool fillWithZeros) :
+	inline AlgTheoryLab2::Matrix<Numeric>::Matrix(int rows, int columns, Numeric * data, bool fillWithZeros) :
 		_data(rows * columns, data),
 		_rows(rows),
 		_columns(columns)
@@ -222,7 +222,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix() :
+	inline AlgTheoryLab2::Matrix<Numeric>::Matrix() :
 		_data(),
 		_rows(0),
 		_columns(0)
@@ -230,7 +230,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix(const Matrix & other) :
+	inline AlgTheoryLab2::Matrix<Numeric>::Matrix(const Matrix & other) :
 		_data(),
 		_rows(0),
 		_columns(0)
@@ -239,7 +239,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric>::Matrix(Matrix && other) :
+	inline AlgTheoryLab2::Matrix<Numeric>::Matrix(Matrix && other) :
 		_data(),
 		_rows(0),
 		_columns(0)
@@ -248,7 +248,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(const AlgTheoryLab2::Matrix<Numeric> & other)
+	inline AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(const AlgTheoryLab2::Matrix<Numeric> & other)
 	{
 		if (this != &other)
 		{
@@ -262,7 +262,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(AlgTheoryLab2::Matrix<Numeric> && other)
+	inline AlgTheoryLab2::Matrix<Numeric> & AlgTheoryLab2::Matrix<Numeric>::operator=(AlgTheoryLab2::Matrix<Numeric> && other)
 	{
 		if (this != &other)
 		{
@@ -279,19 +279,19 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	Numeric & AlgTheoryLab2::Matrix<Numeric>::At(int row, int column)
+	inline Numeric & AlgTheoryLab2::Matrix<Numeric>::At(int row, int column)
 	{
 		return _data[GetIndex(row, column)];
 	}
 
 	template<class Numeric>
-	Numeric const& AlgTheoryLab2::Matrix<Numeric>::At(int row, int column) const
+	inline Numeric const& AlgTheoryLab2::Matrix<Numeric>::At(int row, int column) const
 	{
 		return _data[GetIndex(row, column)];
 	}
 
 	template<class Numeric>
-	Matrix<Numeric> Matrix<Numeric>::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix<Numeric> & other) const
+	inline Matrix<Numeric> Matrix<Numeric>::MultiplyStrassenVinogradNoAlloc(const AlgTheoryLab2::Matrix<Numeric> & other) const
 	{
 		int size = CalculateSizeOfAllAuxiliaryMatrices<21, _hybridFallbackThreshold>(_rows);
 
@@ -305,7 +305,7 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	Matrix<Numeric> Matrix<Numeric>::MultiplyNaive(const Matrix<Numeric> & other) const
+	inline Matrix<Numeric> Matrix<Numeric>::MultiplyNaive(const Matrix<Numeric> & other) const
 	{
 		AlgTheoryLab2::Matrix<Numeric> result(_rows, _columns);
 		MultiplyNaiveP(*this, other, result);
@@ -339,7 +339,7 @@ namespace AlgTheoryLab2
 
 	template<class Numeric>
 	template<class _2DimArray1, class _2DimArray2, class _2DimArray3>
-	void Matrix<Numeric>::MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, Numeric* aux)
+	inline void Matrix<Numeric>::MultiplyStrassenVinogradNoAllocP(const _2DimArray1& left, const _2DimArray2& right, _2DimArray3& result, Numeric* aux)
 	{
 #ifdef _DEBUG
 		CheckCompatibilityForMult(left, right);
@@ -488,19 +488,19 @@ namespace AlgTheoryLab2
 	}
 
 	template<class Numeric>
-	int AlgTheoryLab2::Matrix<Numeric>::Rows() const
+	inline int AlgTheoryLab2::Matrix<Numeric>::Rows() const
 	{
 		return _rows;
 	}
 
 	template<class Numeric>
-	int AlgTheoryLab2::Matrix<Numeric>::Columns() const
+	inline int AlgTheoryLab2::Matrix<Numeric>::Columns() const
 	{
 		return _columns;
 	}
 
 	template<class Numeric>
-	int AlgTheoryLab2::Matrix<Numeric>::GetIndex(int row, int column) const
+	inline int AlgTheoryLab2::Matrix<Numeric>::GetIndex(int row, int column) const
 	{
 		return _rows * column + row;
 	}

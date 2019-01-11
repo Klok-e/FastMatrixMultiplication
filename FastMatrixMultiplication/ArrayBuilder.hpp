@@ -6,11 +6,11 @@ namespace AlgTheoryLab2
 	{
 		// extern because https://stackoverflow.com/questions/10422034/when-to-use-extern-in-c 
 		// without it every file that includes it has its own variable with that name, we don't want this
-		extern unsigned long long _createdArrays;
-		extern unsigned long long _deletedArrays;
+		inline unsigned long long _createdArrays;
+		inline unsigned long long _deletedArrays;
 
-		extern unsigned long long _createdArrSumSize;
-		extern unsigned long long _deletedArrSumSize;
+		inline unsigned long long _createdArrSumSize;
+		inline unsigned long long _deletedArrSumSize;
 
 		template<typename T>
 		T* CreateArray(int size);

@@ -74,7 +74,7 @@ int main()
 		AlgTheoryLab2::printMatr(c1);
 	}
 
-	std::vector<int> sizes{1024};
+	std::vector<int> sizes{512};
 
 	const int iters = 3;
 	AlgTheoryLab2::Clock watch;
